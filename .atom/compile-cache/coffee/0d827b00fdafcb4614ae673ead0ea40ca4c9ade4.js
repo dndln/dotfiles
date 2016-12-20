@@ -1,0 +1,131 @@
+(function() {
+  var AutoComplete, fs, helpers, os, path, uuid;
+
+  fs = require('fs-plus');
+
+  path = require('path');
+
+  os = require('os');
+
+  uuid = require('node-uuid');
+
+  helpers = require('./spec-helper');
+
+  AutoComplete = require('../lib/autocomplete');
+
+  describe("autocomplete functionality", function() {
+    beforeEach(function() {
+      this.autoComplete = new AutoComplete(['taba', 'tabb', 'tabc']);
+      this.testDir = path.join(os.tmpdir(), "atom-ex-mode-spec-" + (uuid.v4()));
+      this.nonExistentTestDir = path.join(os.tmpdir(), "atom-ex-mode-spec-" + (uuid.v4()));
+      this.testFile1 = path.join(this.testDir, "atom-ex-testfile-a.txt");
+      this.testFile2 = path.join(this.testDir, "atom-ex-testfile-b.txt");
+      return runs((function(_this) {
+        return function() {
+          fs.makeTreeSync(_this.testDir);
+          fs.closeSync(fs.openSync(_this.testFile1, 'w'));
+          fs.closeSync(fs.openSync(_this.testFile2, 'w'));
+          spyOn(_this.autoComplete, 'resetCompletion').andCallThrough();
+          spyOn(_this.autoComplete, 'getFilePathCompletion').andCallThrough();
+          return spyOn(_this.autoComplete, 'getCommandCompletion').andCallThrough();
+        };
+      })(this));
+    });
+    afterEach(function() {
+      return fs.removeSync(this.testDir);
+    });
+    describe("autocomplete commands", function() {
+      beforeEach(function() {
+        return this.completed = this.autoComplete.getAutocomplete('tab');
+      });
+      it("returns taba", function() {
+        return expect(this.completed).toEqual('taba');
+      });
+      return it("calls command function", function() {
+        return expect(this.autoComplete.getCommandCompletion.callCount).toBe(1);
+      });
+    });
+    describe("autocomplete commands, then autoComplete again", function() {
+      beforeEach(function() {
+        this.completed = this.autoComplete.getAutocomplete('tab');
+        return this.completed = this.autoComplete.getAutocomplete('tab');
+      });
+      it("returns tabb", function() {
+        return expect(this.completed).toEqual('tabb');
+      });
+      return it("calls command function", function() {
+        return expect(this.autoComplete.getCommandCompletion.callCount).toBe(1);
+      });
+    });
+    describe("autocomplete directory", function() {
+      beforeEach(function() {
+        var filePath;
+        filePath = path.join(os.tmpdir(), 'atom-ex-mode-spec-');
+        return this.completed = this.autoComplete.getAutocomplete('tabe ' + filePath);
+      });
+      it("returns testDir", function() {
+        var expected;
+        expected = 'tabe ' + this.testDir + path.sep;
+        return expect(this.completed).toEqual(expected);
+      });
+      return it("clears autocomplete", function() {
+        return expect(this.autoComplete.resetCompletion.callCount).toBe(1);
+      });
+    });
+    describe("autocomplete directory, then autocomplete again", function() {
+      beforeEach(function() {
+        var filePath;
+        filePath = path.join(os.tmpdir(), 'atom-ex-mode-spec-');
+        this.completed = this.autoComplete.getAutocomplete('tabe ' + filePath);
+        return this.completed = this.autoComplete.getAutocomplete(this.completed);
+      });
+      it("returns test file 1", function() {
+        return expect(this.completed).toEqual('tabe ' + this.testFile1);
+      });
+      return it("lists files twice", function() {
+        return expect(this.autoComplete.getFilePathCompletion.callCount).toBe(2);
+      });
+    });
+    describe("autocomplete full directory, then autocomplete again", function() {
+      beforeEach(function() {
+        var filePath;
+        filePath = path.join(this.testDir, 'a');
+        this.completed = this.autoComplete.getAutocomplete('tabe ' + filePath);
+        return this.completed = this.autoComplete.getAutocomplete(this.completed);
+      });
+      it("returns test file 2", function() {
+        return expect(this.completed).toEqual('tabe ' + this.testFile2);
+      });
+      return it("lists files once", function() {
+        return expect(this.autoComplete.getFilePathCompletion.callCount).toBe(1);
+      });
+    });
+    describe("autocomplete non existent directory", function() {
+      beforeEach(function() {
+        return this.completed = this.autoComplete.getAutocomplete('tabe ' + this.nonExistentTestDir);
+      });
+      return it("returns no completions", function() {
+        var expected;
+        expected = '';
+        return expect(this.completed).toEqual(expected);
+      });
+    });
+    return describe("autocomplete existing file as directory", function() {
+      beforeEach(function() {
+        var filePath;
+        filePath = this.testFile1 + path.sep;
+        return this.completed = this.autoComplete.getAutocomplete('tabe ' + filePath);
+      });
+      return it("returns no completions", function() {
+        var expected;
+        expected = '';
+        return expect(this.completed).toEqual(expected);
+      });
+    });
+  });
+
+}).call(this);
+
+//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAiZmlsZSI6ICIiLAogICJzb3VyY2VSb290IjogIiIsCiAgInNvdXJjZXMiOiBbCiAgICAiL2hvbWUvYW5keS8uYXRvbS9wYWNrYWdlcy9leC1tb2RlL3NwZWMvYXV0b2NvbXBsZXRlLXNwZWMuY29mZmVlIgogIF0sCiAgIm5hbWVzIjogW10sCiAgIm1hcHBpbmdzIjogIkFBQUE7QUFBQSxNQUFBLHlDQUFBOztBQUFBLEVBQUEsRUFBQSxHQUFLLE9BQUEsQ0FBUSxTQUFSLENBQUwsQ0FBQTs7QUFBQSxFQUNBLElBQUEsR0FBTyxPQUFBLENBQVEsTUFBUixDQURQLENBQUE7O0FBQUEsRUFFQSxFQUFBLEdBQUssT0FBQSxDQUFRLElBQVIsQ0FGTCxDQUFBOztBQUFBLEVBR0EsSUFBQSxHQUFPLE9BQUEsQ0FBUSxXQUFSLENBSFAsQ0FBQTs7QUFBQSxFQUtBLE9BQUEsR0FBVSxPQUFBLENBQVEsZUFBUixDQUxWLENBQUE7O0FBQUEsRUFNQSxZQUFBLEdBQWUsT0FBQSxDQUFRLHFCQUFSLENBTmYsQ0FBQTs7QUFBQSxFQVFBLFFBQUEsQ0FBUyw0QkFBVCxFQUF1QyxTQUFBLEdBQUE7QUFDckMsSUFBQSxVQUFBLENBQVcsU0FBQSxHQUFBO0FBQ1QsTUFBQSxJQUFDLENBQUEsWUFBRCxHQUFvQixJQUFBLFlBQUEsQ0FBYSxDQUFDLE1BQUQsRUFBUyxNQUFULEVBQWlCLE1BQWpCLENBQWIsQ0FBcEIsQ0FBQTtBQUFBLE1BQ0EsSUFBQyxDQUFBLE9BQUQsR0FBVyxJQUFJLENBQUMsSUFBTCxDQUFVLEVBQUUsQ0FBQyxNQUFILENBQUEsQ0FBVixFQUF3QixvQkFBQSxHQUFtQixDQUFDLElBQUksQ0FBQyxFQUFMLENBQUEsQ0FBRCxDQUEzQyxDQURYLENBQUE7QUFBQSxNQUVBLElBQUMsQ0FBQSxrQkFBRCxHQUFzQixJQUFJLENBQUMsSUFBTCxDQUFVLEVBQUUsQ0FBQyxNQUFILENBQUEsQ0FBVixFQUF3QixvQkFBQSxHQUFtQixDQUFDLElBQUksQ0FBQyxFQUFMLENBQUEsQ0FB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
+
+//# sourceURL=/home/andy/.atom/packages/ex-mode/spec/autocomplete-spec.coffee
