@@ -8,3 +8,8 @@ autocmd Filetype python setlocal expandtab tabstop=4 shiftwidth=4
 set nrformats=
 
 set number
+
+set backspace=indent,eol,start
+
+" Display vertical line at 100 chars
+"set colorcolumn=100
