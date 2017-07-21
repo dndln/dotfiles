@@ -6,3 +6,5 @@ autocmd Filetype python setlocal expandtab tabstop=4 shiftwidth=4
 
 " Increment numbers with base 10
 set nrformats=
+
+set number
